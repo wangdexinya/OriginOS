@@ -1,0 +1,37 @@
+import "window_tools"
+
+window "dimensions" 270 140
+window "resizable" False
+window "show"
+
+location = passed_data
+location_last = location.split("/").last()
+
+mainloop:
+load_theme
+
+loc 999 2 0 -15
+square 270 20 15 : c#prim
+
+loc 2 2 10 -15
+text "New in /" ++ location_last 9 : c#txtc
+
+loc 999 2 0 -63
+square 250 30 10 : c#prim
+input 250 23 "name" "Example: 'file.txt'"
+
+loc 999 2 0 -113
+square 250 30 10 : c#prim
+if input_name.match("/[^.]+\.[^.]+/gm") != null (
+  if clicked or "enter".onKeyDown() (
+    file "download" input_name.toStr() null null location
+    window.close()
+  )
+)
+change_x -55
+text "Create File" 10 : c#txtc
+loc -2 2 -15 -15
+icon "close" 0.6 : c#txtc
+if clicked (
+  window "stop"
+)

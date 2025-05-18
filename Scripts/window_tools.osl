@@ -1,0 +1,13 @@
+def "seticon" "icon" (
+  file "open" my_uuid
+  file "set" 11 icon
+)
+
+def "load_theme" (
+  local global @= Variables()
+  global.window_colour = user.theme.background
+  global.prim = user.theme.primary
+  global.seco = user.theme.secondary
+  global.tert = user.theme.tertiary
+  global.txtc = user.theme.text
+)

@@ -1,0 +1,4 @@
+file "open" passed_data "onlyaccess"
+file "get" 14
+window "add" data
+window "stop"

@@ -1,0 +1,158 @@
+import as "glass" from "packages"
+import "window_tools"
+
+permission "request" "file admin"
+
+window.show()
+file "open" 1
+tab = "Info"
+
+if passed_data == null (
+  passed_data = window.parent.file_uuid
+)
+
+file "open" passed_data
+window "dimensions" 600 500
+file_json = file.str
+type = file[1]
+name = file[2]
+loc = file[3]
+file_data = file[4]
+data_secondary = file[5]
+created = file[9].destr
+edited = file[10].destr
+icon = file[11].destr
+size = file[12].destr
+uuid = file[14]
+
+inputs.icon = icon.split("\n")
+
+file "open" user_folder ++ "/Application Data/permissions.json"
+file_permissions = file[4][uuid]
+
+file_config = data
+tabs = ["Info","Edit"]
+preview = [".3dicn",".icn",".txt"]
+if type == ".osl" (
+  tabs = ["Info","Permissions","Edit"]
+)
+if preview.contains(type) (
+  tabs = ["Info","Preview","Edit"]
+)
+mainloop:
+load_theme
+
+glass:frame window.left window.top window.right window.bottom; frame "clear"
+
+loc 2 2 85 -25
+x = x_position
+for count tabs.len (
+  x += 160
+  if tab == tabs[count] (
+    square 140 25 15 : c#seco
+    square 140 25 10 : c#window_colour
+  ) else (
+    square 140 25 15 : c#window_colour
+  )
+  if clicked (
+    tab = tabs[count]
+  )
+  icon tabs[count] 0.7 : c#txtc chx#-60
+  text tabs[count] 8 : chx#20
+  goto x y_position
+)
+loc 999 999 0 -20
+square window_width - 30 window_height - 70 10 1 : c#window_colour
+if tab == "info" (
+  loc 2 2 40 -80
+  file "open" passed_data
+  file "render" 1.5
+  rightclick "file" passed_data
+  n = newline
+  text name ++ type 9 : c#txtc chx#30
+  
+  loc 2 2 20 -130
+  text "Size: " ++ size ++ "b" 8
+
+  loc 2 2 20 -160
+  text "Created:" + created.timestamp("convert-relative") 8
+
+  loc 2 2 20 -190
+  text "Edited:" + edited.timestamp("convert-relative") 8
+
+  loc 2 2 20 -220
+  text "Location: " ++ loc 8
+)
+if tab == "permissions" (
+  ww = window_width
+  wh = window_height
+  c prim
+  frame window.left + 20 window.top - 50 window.right - 20 window.bottom + 20
+  loc 2 2 10 -20
+  c txtc
+  each perm file_permissions (
+    text perm 8
+    set_x frame.left + 10
+    change_y -50
+  )
+  frame "clear"
+)
+if tab == "Preview" (
+  loc 999 999 0 0
+  c txtc
+  if type == ".icn" (
+    icon file_data 8
+    rightclick "file" passed_data
+  )
+)
+if tab == "edit" (
+  loc 2 2 20 -70
+  text "Actions" 10 : c#txtc
+
+  loc 2 2 100 -100
+  actions = ["copy","file","open"]
+  for count 3 (
+    square 160 30 10 1 : c#prim
+    icon actions[count] 0.8 : c#txtc chx#-65
+    change_x 245
+  )
+
+  loc 2 2 60 -100
+  text "Copy As Json" 8
+  if clicked (
+    clipboard "set" file_json.str
+  )
+
+  loc 2 2 235 -100
+  text "Show File" 8
+
+  loc 2 2 420 -100
+  text "Open File" 8
+  if clicked and can (
+    file "open" passed_data
+    file "start"
+    can = False
+  )
+  
+  loc 2 2 20 -180
+  text "Edit this file's icn" 10 : c#txtc
+  
+  loc -2 2 -30 -180
+  icon "save" 0.7
+  if onclick (
+    file "open" passed_data "onlyaccess"
+    file "set" 11 inputs.icon.join(" ")
+  )
+  
+  goto window.left / 2 + 40 -50
+  textbox window.width - 260 200 "icon" 10 {
+    bg_colour: prim
+  }
+  goto window.right - 120 -50
+  square 200 200 10 : c#prim
+  icon inputs.icon.join(" ") 10
+  
+)
+can = mouse_down.not()
+frame "clear"
+import "win-buttons"

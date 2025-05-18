@@ -1,0 +1,190 @@
+import as "glass" from "packages"
+import "window_tools"
+
+permission "request" "account"
+permission "request" "rotur token"
+
+menu = "transfers"
+
+if passed_data.isType("object") (
+  if passed_data.mode == "transfer" (
+    menu = "transfer"
+    recipient = passed_data.user
+    window.resize(400,500)
+    window "resizable" false
+  )
+)
+
+rotur_icn = "w 1 ellipse 0 0 10 0.5 100 ellipse 0 0 10 0.5 160 ellipse 0 0 10 0.5 220"
+
+def transfer(input_recipient) (
+  if balance < (input_amount.toNum() + 1) (
+    say "Too Few Credits For This Transaction"
+  ) else if input_amount.toNum() < 0.01 (
+    say "Send amount must be greater than 0.01"
+  ) else if input_recipient == username (
+    say "You Cannot Send To Yourself"
+  ) else (
+    rotur "transfer" input_amount.toNum() input_recipient
+    input_amount = null
+    input_recipient = null
+  )
+)
+
+def "transfer_button" "w, name" (
+  if input_amount == "" or name == "" (
+    c prim
+    can = false
+  ) else (
+    c seco
+    can = true
+  )
+  square w 25 10
+  if onclick and can (
+    transfer(name)
+  )
+  message = "Transfer" + input_amount.toNum() ++ " (+ 1 tax)" + "Total Cost: " ++ (input_amount.toNum() + 1)
+  centext message 8 : c#txtc
+)
+
+mainloop:
+load_theme
+
+balance = user["sys.currency"]
+transactions = user["sys.transactions"]
+
+loc 2 999 100 0
+glass:frame window.left window.top window.right window.bottom; frame "clear"
+
+if menu == "transfer" (
+  loc 2 2 20 -20
+  icon rotur_icn 1
+  
+  text "Transfer Rotur Credits" 10 : chx#20
+  
+  goto 0 -15
+  square 350 420 20 : c#window_colour
+
+  goto 0 50
+  image "https://avatars.rotur.dev/" ++ recipient 200 200
+  icon "w 5 cutcircle 0 0 103 0 180 w 40 cutcircle 0 0 125 0 180" 1
+  
+  
+  change_y -137
+  centext recipient 15 : c#txtc
+  
+  input_recipient = recipient
+  
+  change_y -77
+  c prim
+  square 345 25 10
+  input 340 23 "amount" "Amount Of Credits"
+
+  change_y -45
+  transfer_button 345 recipient
+
+  import "win-buttons"
+  exit
+)
+
+goto 95 -15
+square window.width - 230 window.height - 70 20 : c#window_colour
+
+loc 2 2 10 -20
+text "My Wallet (" ++ menu ++ ")" 10 : c#txtc
+loc 2 2 100 -100
+icon rotur_icn 4
+
+loc 2 2 100 - (balance.len * 10) -180
+text balance 20
+loc 2 2 65 -210
+text "Credits" 10
+
+loc 2 -2 30 30
+square 0 0 40 : c#seco hover_c#tert tooltip#"My Past Transactions"
+if onclick (;menu = "transfers";)
+icon "list" 0.8 : c#txtc
+
+change_x 50
+square 0 0 40 : c#seco hover_c#tert tooltip#"Transfer Credits"
+if onclick (;menu = "send";)
+change -2 -2
+icon "send" 0.8 : c#txtc
+
+change_x 50
+square 0 0 40 : c#seco hover_c#tert tooltip#"Claim Daily Credit"
+if onclick (
+  token = roturToken()
+  promise.new(def() -> (
+    log window.permissions
+    log roturToken()
+    response = ("https://social.rotur.dev/claim_daily?auth=" ++ token).httpGet()
+    token = null
+    say response.message ?? response.error
+  ))
+)
+icon rotur_icn 1 : c#txtc
+
+c prim
+switch menu (
+  case "send"
+    loc 999 2 -30 -70
+    text "Send Credits To Another User" 10 : c#txtc
+    
+    loc 999 2 105 -110
+    square 360 25 10 : c#prim
+    input 350 25 "recipient" "Recipient"
+    
+    loc 999 2 105 -150
+    square 360 25 10 : c#prim
+    input 350 25 "amount" "Amount Of Credits"
+    loc 999 2 105 -190
+    transfer_button 360 input_recipient
+    break
+
+  case "sent"
+    loc 999 2 50 -70
+    text "Sent" 10 : c#txtc
+    break
+    
+  case "transfers"
+    if transactions == [] (
+      loc 999 2 30 -70
+      text "No Transactions" 10 : c#txtc
+    ) else (
+      frame window.left + 200 window.top - 37 window.right - 10 window.bottom transactions.len * 35 (
+        for i transactions.len (
+          txt @= transactions[i]
+          y = i - 0.5 * -35 + scroll_y - 5
+        
+          loc 999 2 0 y
+          square frame_width - 20 20 10 : c#prim
+          
+          c txtc
+          if typeof(txt) == "string" (
+            loc 2 2 10 y
+            text txt 10
+          ) else (
+            loc 2 2 10 y
+            switch txt["type"] (
+              case "gamble"
+                text "You " ++ txt.note + txt.amount + "credits gambling" 10
+                break
+              case "out"
+                text "You sent " ++ txt.amount ++ " credit to " ++ txt.user 10
+                break
+              case "in"
+                text txt.user ++ " sent you " ++ txt.amount ++ " credits" 10
+                break
+              case "tax"
+                text "You got " ++ txt.amount ++ " from " ++ txt.user ++ "'s taxes" 10
+                break
+            )
+            text txt.time.timestamp("to-relative") 10 : chx#10
+          )
+        )
+      )
+    )
+    break
+)
+import "win-buttons"

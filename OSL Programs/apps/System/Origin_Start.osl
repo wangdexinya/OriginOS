@@ -1,0 +1,204 @@
+import as "glass" from "packages"
+import "window_tools" as "wt"
+
+permission "request" "file admin"
+permission "request" "terminal"
+
+icons = {
+  terminal: "w 1.5 line 0 -4 5 -4 line -2 0 -6 4 line -2 0 -6 -4",
+  settings: "settings",
+  logout: "log-out"
+}
+
+images = {
+  discord: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAV1BMVEVHcExYZfJYZfJYZfJYZfJYZfJYZfJYZfJYZfJYZfJYZfL///9YZfJWY/K6wPNlcPBaZ/GlrfLw8fpueu/KzvT4+PyvtvLr7vp5hO/W2fadpPLi5fiDjPDIsOONAAAAC3RSTlMAjvbiFlksrAfPwLOHjIYAAAGQSURBVDjLlZVbgoMgDEUFta0KAargc//rHCSR0ql2mPtF6SEkIYlFkaqqWVtyIXjZsroqrnRjjYcO8YbdLrBS/FJ5gj7qDyyg9eOdqxgXp+LszdXqLi51r/K4lHww8VXs8LPm30FeU15ivFJKrXGptf8RY8cssYipzQxGih32i01FlKUGpTKz7boRYBgAxq6zs1EyMRkjcd2HjHiZrBoyOD0/wedEJpsqhqyhOxHoGDj7YjAxyYr22sNdjv5ui5JCXs/BlQIvC3RRbjbsDwsEF56wDGHDbgjyglw0yPnzBvMiFZKGnCRQ4+4ihex9rsfeLxY8S3Hj1VLNV+CMTnIM5ojF72q8Wh9nKZoS0xPMdOF5IURlwSAXjIf0sBQ8EYEMnzBaTBGbgP4JQ1FQLqyDlVi7grNHxkJR0N3KjSHP/bY4ALdsfcj86FSsXCxcKaa9WGHvgKC9mkaYhIyFe/Sg1JOBPvaJ7MFMWiat8GoubyZtPh1bhporu13zB0D2SMkfUvljL3+Q5o/mfwz7Pz4fP4PIPgIHRSAHAAAAAElFTkSuQmCC",
+  github: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAASFBMVEVHcEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABJhibTAAAAF3RSTlMA/CbnCVr20zYbyOCDQnRN7am1Eo9onMfsFAwAAAGmSURBVDjLhZVZoqQgDEWZZ0Sc2P9Om0kUC17npwo5huQmRAA6I8id5jjM6RABc0PLphkM0SDT24ImmLhw6AxfYoBJ88EyauSXsyoMTdmeo3jMBYhpx61hauuLdH9wkXRNFZ7WfPs5Xm9lp+pEfFoxF2XkWcJoSUwehXQs7fkiPs0Sa5k18oZaISyNf/IDnTPKYe5FGLWPirDzZ7M4DPwvMLkkW81NDMta9dgIEDVXJUegrAXDAizlZObGnVLSDnABvvke2h2ZByXasMx6dCn7HKzhUWpkVZQVlF/oZqCtwH9B14PhnIFn7csaYzhm4FHrcWc9LnWUR91ZVx2ZneTCbh1rZSaK33rHyty1hmZAEgNbrfM7aQmvn8mArsrl85L0F/UxFn1Y2dwSaQ/dLi2tHc4tWVLUTPvabdJr9hoDWRMan2ALrl5P87qNjD63UO1yg+8+ty+H9Rbmex2j2KlZbIsRPbectyxtfKg+OT8gtv3s4adACP16XPsplZRgGD+n3KD+NKAoxcdfUInxxP2Ag4mbnMZK6AbGqaMPMf0qnE8Jz/6r8A81VTjr43PLzQAAAABJRU5ErkJggg=="
+}
+
+window.x = 0
+window.y = -100000
+window.resize(0,0)
+window "to_dimensions" 500 600
+window "responsive" true
+window.show()
+window "set_dragbox" []
+window.no_desktop = true
+
+apps = open("~/Applications") ++ open("/(A) System/User Applications")
+
+total_apps = apps.len
+
+each i app apps (
+  file "open" app "onlyaccess"
+  apps[i] = {
+    type: "app",
+    name: fileGet(2),
+    uuid: app
+  }
+  file "close"
+)
+
+apps = apps.sortBy("name")
+
+last = ""
+i = 0
+loop apps.len (
+  i ++
+  app = apps[i]
+  if last != app.name[1] (
+    last = app.name[1]
+    apps.insert(i, {
+      type: "label",
+      name: last
+    })
+    i ++
+  )
+)
+
+before = [
+  {
+    type: "label",
+    name: "Info"
+  },
+  {
+    type: "inf",
+    name: "Join The originOS Discord Server",
+    icon: "image " ++ images.discord ++ " 25",
+    link: "https://dsc.gg/originOS"
+  },
+  {
+    type: "inf",
+    name: "Checkout The Github Repo",
+    icon: "c #fff w 25 dot 0 0 image " ++ images.github ++ " 20",
+    link: "https://github.com/Mistium/Origin-OS"
+  },
+  {
+    type: "inf",
+    name: "Support me on patreon!",
+    icon: "icn favorites-full 1",
+    link: "https://patreon.com/mistium"
+  },
+  {
+    type: "inf",
+    name: "Used " ++ formatFileSize(user.used_size) ++ "/" ++ formatFileSize(user.max_size),
+    icon: "icn file 0.9"
+  },
+  {
+    type: "inf",
+    name: "Total Applications: " ++ total_apps,
+    icon: "icn Grid-Apps 0.8"
+  },
+  {},
+  {
+    type: "label",
+    name: "Apps"
+  }
+]
+
+apps = before ++ apps
+
+total = apps.len
+
+input "focus" "search"
+
+mainloop:
+wt:load_theme
+
+width = window.width - 30
+height = window.height - 30
+
+goto 0 0
+c window_colour
+square width height 30
+if mouse_down and clicked.not() (
+  window.close()
+)
+
+c prim
+goto 0 0
+square width height 10
+
+goto 0 window.top - 30
+c seco
+square width 30 10
+
+goto 0 window.bottom + 30
+square width 30 10
+
+glass:frame window.left window.top window.right window.bottom
+frame "clear"
+
+frame window.left + 10 window.top - 50 window.right - 10 window.bottom + 51 total - 0.5 * 40 (
+  total = apps.len
+  goto 0 frame.top - 20 + frame.scroll
+  each item apps (
+    if item.name.toStr().contains(input_search).not() and input_search != "" (
+      total --
+      continue
+    )
+    set_x 0
+    square width 25 10 0 1
+    if mouse_touching (
+      
+    )
+    set_x frame.left + 20
+    if item["type"] == "app" (
+      change_x 10
+      file "open" item.uuid "onlyaccess"
+      if onclick (
+        file "start"
+        window.close()
+      )
+      file "render" 1
+      change_x 20
+    ) else if input_search.len > 0 (
+      total --
+      continue
+    ) else if item["type"] == "inf" (
+      if item.link != "" and onclick (
+        http "newtab" item.link
+      )
+      change_x 10
+      icon item.icon 1
+      change_x 20
+    )
+    text item.name 10 : c#txtc
+    set_x 0
+    change_y -40
+  )
+)
+
+goto 15 window.top - 30
+pen "opacity" 0
+input width - 30 28 "search" null null txtc
+set_x window.left + 28
+icon "search" 0.8 : c#txtc
+
+loc 2 -2 30 30
+image user.pfp 30 30
+text username 10 : chx#25
+
+loc -2 -2 -30 30
+icon icons.terminal 1.5 : tooltip#"Terminal"
+if onclick (
+  window.create("terminal")
+  window.close()
+)
+
+icon icons.settings 0.9 : chx#-40 tooltip#"Settings"
+if onclick (
+  window.create("settings")
+  window.close()
+)
+
+icon icons.logout 0.8 : chx#-40 tooltip#"Logout"
+if onclick (
+  terminal "su"
+  window.close()
+)
+
+if window_id_index != 1 (
+  window.close()
+)
+
+window.y = screensize_y - window.height / -2 + 90

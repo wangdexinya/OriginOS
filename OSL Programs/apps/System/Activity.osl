@@ -1,0 +1,271 @@
+import "window_tools"
+
+permission "request" "windows"
+permission "request" "terminal"
+
+window "show"
+window "dimensions" 600 400
+current_tab = "no_perms"
+
+activity_info = false
+if Windows().getKeys("id").contains(passed_data) (
+  activity_info = true
+  page = passed_data
+)
+memory = roturLink.enabled or "performance.memory !== undefined".eval()
+paused = false
+graph = []
+network_usage = []
+
+def "tab" "name" (
+  if name == current_tab "c seco" else "c prim"
+  square tab_w 25 10 1
+  if onclick "current_tab = name"
+  change_x tab_w / -2 + 5
+  text name 8 : c#txtc
+)
+
+def arrSum(this.arr) (
+  this.out = 0
+  each this.item this.arr (
+    this.out += this.item
+  )
+  return this.out
+)
+
+
+def getWindowsData() (
+  windows_list = Windows()
+  windows_names = windows_list.getKeys("name")
+  windows_drawtimes = windows_list.getKeys("render")
+  windows_ids = windows_list.getKeys("id")
+  windows_draw_main = []
+  each this.item windows_drawtimes (
+    windows_draw_main.append(item[1])
+  )
+)
+
+created_time = timer
+last_timer = timer
+next_update = 0.5
+pen "width" 10
+high = 0
+low = 250
+graph = 1000.newArray()
+
+getWindowsData()
+
+
+terminal "disk"
+disk_info = terminal_output
+
+
+mainloop:
+load_theme
+
+loc -2 2 -20 -20
+square 25 25 10 : c#prim
+if clicked "window stop"
+
+square 25 25 10 : chx#-40
+if clicked "window minimise.str"
+icon "down" 0.7 : c#txtc
+
+icon "close" 0.7 : chx#40
+if clicked "window stop"
+
+if current_tab == "no_perms" (
+  if window.permissions.contains("windows") (
+    current_tab = "Render Info"
+  ) else (
+    if current_tab == "no_perms" (
+      loc 2 2 20 -20
+      text "This Application requires window permissions to function properly" 10 : c#fff
+      exit
+    )
+  )
+)
+if activity_info (
+  loc 2 2 20 -20
+  text name 10 : c#txtc
+  loc 2 2 20 -50
+  text dt.round() + "fps" 15
+  if timer - created_time > 1 (
+    loc 2 2 90 -100
+    square 140 25 10 : c#prim hover_c#seco
+    if clicked (
+      terminal "kill" + page
+      window "stop"
+    )
+    icon "close" 0.7 : c#txtc chx#-50
+    
+    text "Force Quit" 9 : chx#20
+  )
+  
+  wwm = window_width / 30
+  whm = window_height / 100
+  if timer - last_timer > 0.05 (
+    last_timer = timer
+    dt = delta_time
+    windows_list = Windows()
+    current = windows_list.getKeys("id").index(page)
+    drawtimes = windows_list[current].render.JsonParse()
+    name = windows_list[current].name
+    dt = (1000 / (drawtimes[1] + 0.01)).clamp(1,1000)
+    pr = drawtimes[2]
+    graph.append(dt / 1000)
+    graph.delete(1)
+  )
+  c txtc
+  loc 2 2 20 -150
+  each i pr (
+    set_x window.left + 20
+    text i 10
+    change_y -20
+  )
+  goto 150 -50
+  graph window_width - 300 window_height - 100 graph
+  exit
+)
+
+wwm = window_width - 50 / 100
+whm = window_height / 300
+if paused.not() (
+  // only add to the fps usage graph when not paused
+  // fixes: https://discord.com/channels/1147362734300725298/1336340461555552319
+  usage = (fps / fps_limit).clamp(0,1)
+  graph.append(usage)
+  if graph.len > 1000 (
+    graph.delete(1)
+  )
+  frames = fps.round()
+  if high < frames "high = frames"
+  low *= 1.002
+  if low > frames "low = frames"
+)
+loc 2 2 23 - (frames.len * 5) -20
+text frames 10 : c#txtc
+loc 2 2 13.5 -40
+text "fps" 7
+loc 2 2 23 - (high.len * 5) -70
+text high 10
+loc 2 2 12 -90
+text "high" 7
+loc 2 2 23 - (low.round().len * 5) -120
+text low.round() 10
+loc 2 2 13.5 -140
+text "low" 7
+loc 2 2 23 - (delta.len * 5) -170
+text delta 10
+loc 2 2 13.5 -190
+text "cpu" 7
+if memory (
+  ram_use = (roturLink.memory.percent ?? "Math.round(performance.memory.totalJSHeapSize/performance.memory.jsHeapSizeLimit*100)".eval()).round() ++ "%"
+  loc 2 2 23 - (ram_use.len * 5) -220
+  text ram_use 10
+  loc 2 2 13.5 -240
+  text "ram" 7
+)
+tab_w = 100
+loc 2 2 110 -20
+tab "Render Info"
+loc 2 2 225 -20
+tab "Performance"
+loc 2 2 340 -20
+tab "Network"
+loc 2 2 455 -20
+tab "Disk"
+loc 2 -2 25 25
+if paused "c global_accent" else "c prim"
+square 25 25 10 : tooltip#Pause
+if onclick (
+  paused.not()
+)
+icon "w 3 line 5 10 -5 10 cont -10 5 cont -10 -5 cont -5 -10 cont 5 -10 cont 10 -5 cont 10 5 cont 5 10" 0.8 : c#txtc
+
+if timer - last_timer > next_update and paused.not() (
+  last_timer = timer
+  dt = delta_time
+  getWindowsData()
+  cpu_percent = (roturLink.cpu.percent ?? (arrSum(windows_draw_main) / (1000 / fps_limit) * 100)).round().clamp(1,100)
+  delta = cpu_percent ++ "%"
+)
+if current_tab == "Performance" (
+  minimised_text = "Fps"
+  window "responsive" True
+  goto 25 -25
+  graph window_width - 50 frame_height - 50 graph
+)
+if current_tab == "Network" (
+  info = [
+    "connected   |   " ++ network.connected,
+    "server      |   " ++ network.server,
+    "username    |   " ++ network.username,
+    "",
+    "- Websocket",
+    "upload      |   " ++ formatFileSize(network.upload),
+    "download    |   " ++ formatFileSize(network.download),
+  ]
+  if roturLink.enabled (
+    net = roturLink.network
+    info ++= [
+      "",
+      "- Packets",
+      "received    |   " ++ net.packets_received,
+      "sent        |   " ++ net.packets_sent,
+      "",
+      "- Data",
+      "received    |   " ++ formatFileSize(net.received),
+      "sent        |   " ++ formatFileSize(net.sent)
+    ]
+  )
+  loc 2 2 60 -60
+  text info.join("\n") 10 : c#txtc
+)
+if current_tab == "Render Info" (
+  minimised_text = "Info"
+  window "responsive" False
+  loc 2 2 50 -45
+  x = x_position
+  y = y_position
+  loc -2 -2 0 0
+  c prim
+  frame x y x_position y_position windows_names.len * 40
+  y = scroll_y - 20
+  tot = 0
+  w = frame_width - 20
+  for count windows_names.len (
+    loc 999 2 0 y
+    square w 25 10 : c#prim
+    if mouse_touching (
+      square w 25 10 : c#seco
+      if onclick (
+        window "add" window.file.uuid windows_ids[count]
+      )
+    )
+    rightclick "window" windows_names[count]
+    loc 2 2 15 y
+    text windows_names[count] 7 : c#txtc
+    loc -2 2 -50 y
+    d = windows_drawtimes[count][1]
+    tot += d
+    text d.toStr() 7
+    y -= 40
+  )
+)
+if current_tab == "Disk" (
+  loc 2 2 60 -60
+  text "- Rotur Cloud\n" 10 : c#txtc
+  text disk_info.join("\n") 10
+  
+  if roturLink.enabled (
+    local disk = roturLink.disk
+    loc 2 2 60 -200
+    text "- Hardware Disk\n" 10
+    text "Free   |   " ++ formatFileSize(disk.free) ++ "\n" 10
+    text "Used   |   " ++ formatFileSize(disk.used) ++ "\n" 10
+    text "Size   |   " ++ formatFileSize(disk.total) ++ "\n" 10
+  )
+)
+if mouse_down.not "can = true"
+frame "clear"

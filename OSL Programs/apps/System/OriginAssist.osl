@@ -1,0 +1,157 @@
+import "window_tools" as "wt"
+
+permission "request" "terminal"
+permission "request" "file admin"
+
+w = 10
+w_target = 600
+
+window "dimensions" w 200
+window "responsive" true
+
+y = 300
+y_target = -200
+
+ai_response = ""
+last_change = timer
+changed = true
+input_prev = ""
+prompt = "Hello!"
+
+h = 75
+user_obj = user.JsonStringify()
+
+clicking = false
+last_clicking = false
+
+terminal "get filepaths"
+files_paths = data.join("\n")
+search = []
+
+def searchFiles(this.term) (
+  return files_paths.match("/.+" ++ this.term ++ ".+/gm")
+)
+
+apps = "user/Applications".listFolder()
+
+frames = 0
+
+input "focus" "main"
+
+mainloop:
+
+frames ++
+wt:load_theme
+
+window "refresh_bg"
+
+w += w_target - w / 10
+y += y_target - y / 10
+
+if y > 400 (
+  window "stop"
+)
+if y_target > y (
+  search.delete(search.len)
+  ai_response.delete(ai_response.len)
+)
+window.width = w
+
+w2 = w - 35
+
+goto 0 0
+square w2 window.height - 35 30 0 1
+
+if mouse_down and clicked.not or (window_id != focused_application_id and frames > 2) (
+  y_target = 500
+  w_target = 10
+)
+
+c global_accent
+square w2 window.height - 35 30
+c prim
+square w2 window.height - 35 25
+
+change_y window.height / 2 - 37
+square w - 35 40 25 : c#window_colour
+change_x 20
+input w - 90 25 "main" "Ask rotur anything, and search your files" 0 txtc
+change_x w / -2 + 15
+
+direction ai_url != "none" ? timer * 150 90
+icon "w 1 ellipse 0 0 7 0.45 100 ellipse 0 0 7 0.45 160 ellipse 0 0 7 0.45 220" 2 : c#txtc
+direction 90
+if timer - last_change > 1 and changed and prompt.len > 0 and search.len == 0 (
+  ai_url = "https://apps.mistium.com/autocomplete?content=" ++ encodeURIComponent(prompt) ++ "&user=" ++ encodeURIComponent(user_obj)
+  ai_response_get = ai_url.getAsync()
+  if ai_response_get != "Loading" (
+    ai_response = ai_response_get.replace("\n","\n\n\n").wrapText(w2 / 9).split("\n")
+    ai_lines = ai_response.len
+    changed = false
+    ai_time = timer
+    prompt = ""
+  )
+) else (
+  ai_url = "none"
+)
+if input_main != input_prev (
+  last_change = timer
+  changed = true
+  input_prev = input_main
+  if input_main == "" (
+    search = []
+    ai_response = []
+    prompt = ""
+  ) else (
+    prompt = input_main + "\nTime:" + timestamp.timestamp("convert-full")
+    if input_main.contains("apps") (
+      prompt += "\nApps:" + apps.JsonStringify()
+    )
+    search = searchFiles(input_main).trim(1,10)
+  )
+)
+
+if ai_response.len > 0 (
+
+  ai_current = ai_response.trim(1, timer - ai_time * 50)
+  goto 0 window.top - 90 - (ai_current.len * 10.5)
+  square w2 ai_current.len * 21 25 : c#window_colour
+
+  goto window.left + 15 window.top - 95
+  text ai_current.join("\n") 9 : c#txtc
+  h += ai_current.len * 21 + 35
+  
+)
+
+if search.len > 0 (
+  h2 = search.len * 35
+  goto 0 window.top - h - (search.len * 17.5) - 15
+  square w2 h2 25 : c#window_colour
+  
+  change w2 / -2 + 10 h2 / 2 - 15
+  x = x_position
+  for i search.len (
+    set_x 0
+    file "open" search[i] "onlyaccess"
+    square w2 25 0 0 1
+    if mouse_touching (
+      square w2 25 15 : c#global_accent
+      square w2 25 10 : c#window_colour
+      rightclick "file" fileGet(14)
+      if onclick (
+        file "start"
+        window "stop"
+      )
+    )
+    set_x x
+    file "render" 1
+    text fileGet(2) ++ fileGet(1) 9 : c#txtc chx#20
+    change_y -35
+  )
+  
+  h += h2 + 35
+  
+)
+window.height = h
+window.y = screensize_y / 2 + y - (window.height / 2)
+h = 75

@@ -1,0 +1,11 @@
+file "open" passed_data
+data.split(newline)
+if file.[1] == ".otas" (
+  otas "transpile" data
+)
+
+say "Look at js console for result"
+oasm "compile" data
+start = performance
+oasm data
+log newline ++ "Finished Execution:" ++ newline ++ data.join(newline) ++ newline ++ "Completed in" + ( performance - start ) ++ "ms"

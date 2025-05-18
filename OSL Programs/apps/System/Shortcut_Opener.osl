@@ -1,0 +1,4 @@
+file "open" passed_data "onlyaccess"
+file "open" fileGet(4).toStr()
+file "start"
+window "stop"

@@ -1,0 +1,59 @@
+import "window_tools"
+
+if passed_data != "" (
+  file "open" passed_data "onlyaccess"
+  file "get" 2
+  name = data
+  file "get" 1
+  if [".gif",".mp4"].contains(data) (
+    type = "video"
+  ) else 
+    type = "image"
+  )
+  name.append(data)
+  file "get" 4
+  uri = data.str
+  if type == "image" (
+    image "load" uri passed_data.str
+    w = passed_data.imageinfo("width")
+    h = passed_data.imageinfo("height")
+  )
+  if type == "video" (
+    video "load" uri passed_data.str
+    w = passed_data.videoinfo("width")
+    h = passed_data.videoinfo("height")
+  )
+) else (
+  say "you need to open a file with this app"
+  window "stop"
+)
+window "show"
+
+mainloop:
+load_theme
+
+goto 0 -25
+temp = window.width - 50 / w * 100
+temp2 = window.height - 50 / h * 100
+if temp2 > temp (
+  stretch "x" temp
+  stretch "y" temp
+) else (
+  stretch "x" temp2
+  stretch "y" temp2
+)
+if type == "image" (
+  image passed_data.toStr() 
+)
+if type == "video" (
+  video passed_data.toStr() temp temp
+)
+loc 2 2 10 -20
+text `${name} ${w}x${h}` 10 : c#txtc
+loc -2 2 -20 -20
+square 20 20 10 : c#prim
+icon "close" 0.7 : c#txtc
+if clicked (
+  image "clear" uri
+  window "stop"
+)

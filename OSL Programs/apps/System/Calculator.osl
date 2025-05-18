@@ -1,0 +1,109 @@
+canclick = False
+operation = ""
+current = null
+secondary = null
+
+def "draw" "x, y, x2, y2, character" (
+  loc x y x2 + 5 y2 + 65
+  if operation == character (
+    square 55 55 10 : c#co hover_c#coh
+  ) else (
+    square 55 55 10 : c#cb hover_c#cbh
+  )
+
+  if onclick or character.onKeyDown() and character != "=" (
+    if "1234567890.".contains(character) (
+      if operation == "" (
+        c = current
+        current ++= character
+      ) else (
+        s = secondary
+        secondary ++= character
+      )
+    ) else (
+      operation = character
+    )
+  )
+  if clicked or "enter".onKeyDown() and character == "=" (
+    current.toNum()
+    secondary.toNum()
+    if operation == "+" "current += secondary"
+    if operation == "-" "current -= secondary"
+    if operation == "x" "current *= secondary"
+    if operation == "÷" "current /= secondary"
+    current.toStr()
+    secondary = 0
+    operation = ""
+  )
+  change -10 -5
+  text character 20 : c#ct
+)
+
+co = #f79204
+coh = #f7ae43
+
+window "show"
+window "dimensions" 280 380
+window "resizable" false
+
+mainloop:
+
+theme = user.theme
+cb = theme.primary
+cbh = theme.secondary
+cca = theme.primary
+ctb = theme.primary
+ct = theme.text
+rh = theme.tertiary
+window_colour = theme.background
+
+
+loc 999 2 0 -22.5
+square 265 30 10 1 : c#ctb
+
+loc 999 2 0 -72.5
+square 265 40 10 : c#cca
+
+loc 2 2 20 -22.5
+text "Calculator" 9 : c#ct
+
+draw 2 2 30 -200 "1"
+draw 2 2 100 -200 "2"
+draw 2 2 170 -200 "3"
+draw 2 2 240 -200 "+"
+
+draw 2 2 30 -270 "4"
+draw 2 2 100 -270 "5"
+draw 2 2 170 -270 "6"
+draw 2 2 240 -270 "-"
+
+draw 2 2 30 -340 "7"
+draw 2 2 100 -340 "8"
+draw 2 2 170 -340 "9"
+draw 2 2 240 -340 "x"
+
+draw 2 2 30 -410 "."
+draw 2 2 100 -410 "0"
+draw 2 2 170 -410 "="
+draw 2 2 240 -410 "÷"
+
+loc 2 2 25 -72.5
+output = operation == "" ? current secondary
+
+if output == null "output = 0"
+text output 15
+
+loc -2 2 -27.5 -72.5
+square 40 40 10 : c#cca hover_c#ch
+icon "left-arrow" 0.7 : c#ct
+if clicked or "backspace".isKeyDown() and can (
+  can = false
+  temp = current.len - 1
+  temp2 = secondary.len - 1
+  current.left(operation == "" ? temp temp2)
+)
+
+loc -2 2 -22.5 -22.5
+icon "close" 0.6
+if clicked "window stop"
+if mouse_down.not "can = True"

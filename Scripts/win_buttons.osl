@@ -1,0 +1,19 @@
+window "show"
+direction 90
+loc -2 2 -45 -20
+c user.theme.primary
+square 70 17 10
+change_x 25
+c user.theme.text
+icon "close" 0.6 : hover_size#1.1
+if clicked (
+  window "stop"
+)
+icon "down" 0.6 : chx#-25 hover_size#1.1
+if clicked (
+  window "minimise"
+)
+icon "maximise" 0.6 : chx#-25 hover_size#1.1
+if clicked (
+  window "maximise"
+)

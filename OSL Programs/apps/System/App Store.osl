@@ -1,0 +1,379 @@
+import "window_tools"
+import as "glass" from "packages"
+
+permission "request" "file admin"
+permission "request" "terminal"
+permission "request" "save admin"
+permission "request" "account"
+
+stats = "https://apps.mistium.com/stats".httpGet().JsonParse()
+
+window "dimensions" 750 800
+save "appstore@system" "set_directory"
+if "installed.json".saveExists().not() (
+  save "installed.json" "set" {}
+) else if "installed.json".saveGet().isType("object").not() (
+  save "installed.json" "set" {}
+)
+
+def "rigtext" "txt, sze" (
+  change_x txt.len * -sze
+  text txt sze
+)
+
+home_json = null
+all_json = null
+
+page = "loading"
+page_data = ""
+page_history = [{
+  page: "home"
+}]
+
+def appCard(name) (
+  name = name.toLower()
+  local x = x_position
+  local y = y_position
+  square w - 30 h - 30 20 : c#prim
+  if onclick (
+    void ("https://apps.mistium.com/info?appname=" ++ name).getAsync()
+    navigate("app",name)
+  )
+  
+  local img_w = h / 40
+  change_x w / -2 + (img_w * 20)
+  icon all_json[name].icon.replace("\n"," ") img_w img_w
+  change_x img_w * 15
+  local x2 = x_position
+  change_y 20
+  local txt_w = w / 10 - (img_w * 1)
+  text name.trimText(txt_w - 17) + "\n" 10 : c#txtc
+  text all_json[name].description
+    .wrapText(txt_w)
+    .split("\n")
+    .trim(1,2)
+    .join("\n") ++ "..." 8
+    
+  goto x y
+  change w / 2 - 20 20
+  rigtext formatFileSize(all_json[name].script.scriptSize) 10
+  goto x y
+)
+
+def navigate(p, d) (
+  page = p
+  page_data = d
+  page_history.append({
+    page,
+    page_data
+  })
+)
+
+mainloop:
+load_theme
+
+if home_json == null (
+  data = "https://raw.githubusercontent.com/RoturTW/apps/refs/heads/main/home.json".getAsync()
+  if data != "loading" (
+    home_json = data
+  )
+)
+if all_json == null (
+  data = "https://raw.githubusercontent.com/RoturTW/apps/refs/heads/main/all-info.json".getAsync()
+  if data != "loading" (
+    all_json = data
+    supported_json = all_json.getValues()
+      .filter(v -> (v.supports.contains("originOS")))
+      .sortBy("genre")
+      
+    categories = supported_json
+      .map(v -> (v.genre.toLower()))
+      
+    out = {}
+    for i supported_json.len (
+      cur = categories[i].split(",")
+      for i2 cur.len (
+        out[cur[i2].strip()] ??= []
+        
+        void out[cur[i2].strip()]
+          .append(supported_json[i].title)
+      )
+    )
+    categories @= out
+  )
+)
+
+if all_json != null and home_json != null and page == "loading" (
+  page = "home"
+)
+
+frame window.left window.top window.right window.top - 40 (
+  goto 0 0
+  square frame.width 40 10 : c#prim
+
+  dragbox = [[2,2,0,0],[-2,2,0,-40]]
+
+  loc 2 2 10 -20
+  if page_history.len > 1 (
+    change_x 10
+    dragbox = [[2,2,40,0],[-2,2,0,-40]]
+    square 17 17 10 : c#seco
+    if onclick (
+      cur = page_history[page_history.len - 1]
+      page = cur.page
+      page_data = cur.page_data
+      void page_history.pop()
+    )
+    icon "left-arrow" 0.63 : c#txtc
+    change_x 20
+  )
+  window "set_dragbox" dragbox
+
+  text "App Store" 10 : c#txtc
+)
+
+c prim
+frame window.left window.top - 45 window.right window.bottom page_len (
+  w = min(700, frame.width)
+  page_len = 0
+
+  switch page (
+    case "loading"
+      goto 0 0
+      direction timer * 600
+      icon "w 2 cutcircle 0 0 10 0 90" 3 : c#txtc
+      direction 90
+      break
+    case "home"
+      h = w / 16 * 9
+      goto 0 frame.top - (h / 2) + scroll_y - 10
+      square w - 30 h - 30 20 : c#prim
+      image home_json.featured.image w - 30 h - 30
+      change_y h - 30 / -2 - 65
+      page_len += h + 10
+      h = 100
+      appCard(home_json.featured.name)
+      page_len += h
+      
+      change_y -80
+      square w - 30 30 20 : c#prim
+      if onclick (
+        navigate("categories")
+      )
+      local y = y_position
+      set_x w / -2 + 40
+      icon "list" 1 : c#txtc
+      text "Categories" 10 : chx#30
+      
+      set_x : chy#-60
+      square w - 30 30 20 : c#prim
+      if onclick (
+        save_data = "installed.json".saveGet().JsonParse()
+        navigate("applist", supported_json
+          .filter(v -> (v.version != save_data[v.title] and save_date[v.title] != null))
+          .map(v -> (v.title)))
+      )
+      local y = y_position
+      set_x w / -2 + 40
+      icon "download" 1 : c#txtc
+      text "Updates" 10 : chx#30
+      
+      set_x : chy#-60
+      square w - 30 30 20 : c#prim
+      if onclick (
+        navigate("search")
+      )
+      local y = y_position
+      set_x w / -2 + 40
+      icon "search" 1 : c#txtc
+      text "Search" 10 : chx#30
+      
+      change_y -80
+      set_x w / -4
+      page_len += 280
+      w /= 2
+
+      for i home_json.tiles.len (
+        if x_position > w (
+          set_x w / -2
+          change_y -100
+          page_len += 100
+        )
+        appCard(home_json.tiles[i].title)
+        change_x w
+      )
+      break
+    case "categories"
+      goto 0 frame.top + scroll_y - 50
+      local category_keys = categories.getKeys()
+      for i categories.len (
+        local cur = category_keys[i]
+        set_x 0
+        square w - 30 40 20 : c#prim
+        if onclick (
+          navigate("applist", categories[cur])
+        )
+        set_x w / -2 + 20
+        text cur.toTitle() 10 : c#txtc
+        text "(" ++ categories[cur].len + "Apps)" 10 : chx#20
+        change_y -70
+        page_len += 70
+      )
+      break
+    case "search"
+      goto 0 frame.top + scroll_y - 50
+      c prim
+      square frame.width - 100 30 10
+      input frame.width - 110 30 "search" "Search for an app"
+      change_y -100
+      page_len += 100
+      local apps = all_json.getValues()
+      for i apps.len (
+        if apps[i].title.contains(inputs.search) or apps[i].description.contains(inputs.search) (
+          appCard(apps[i].title)
+          change_y -100
+          page_len += 100
+        )
+      )
+      break
+    case "applist"
+      h = 100
+      goto 0 frame.top + scroll_y - 70
+      if page_data.len == 0 (
+        centext "Looking Kinda Empty" 10 : c#txtc
+      )
+      
+      for i page_data.len (
+        appCard(page_data[i])
+        change_y -100
+        page_len += 100
+      )
+      break
+    case "app"
+      save_data = "installed.json".saveGet().JsonParse()
+    
+      cur @= all_json[page_data]
+      page_len += 60
+      loc 2 2 50 -50 + scroll_y
+      icon cur.icon 3 : c#txtc
+      text cur.title ++ "\n" 15 : c#txtc chx#40 chy#12
+      text "By" + cur.author 10 : chy#5
+      if onclick (
+        navigate("applist", supported_json
+          .filter(v -> (v.author
+            .toLower()
+            .replace(" ","")
+            .split(",")
+            .contains(cur.author.toLower())))
+          .map(v -> (v.title)))
+      )
+      
+      loc -2 2 -90 -45 + scroll_y
+      square 110 30 10 : c#prim
+
+      if save_data[cur.title] == cur.version (
+        msg = "Launch"
+      ) else (
+        if save_data.getKeys().contains(cur.title) (
+          msg = "Update"
+        ) else (
+          msg = "Install"
+        )
+      )
+      
+      centext msg 10 : c#txtc chx#-15
+      
+      square 80 30 10 0 1
+      if onclick (
+        if msg == "Install" or msg == "Update" (
+          terminal "app install \"" ++ cur.title ++ "\""
+        
+          say "Installed to " ++ username ++ "/Applications"
+        
+          save_data[cur.title] = cur.version
+          save "installed.json" "set" save_data
+        )
+        if msg == "Launch" (
+          file "open" "~/Applications/" ++ cur.title ++ ".osl" "onlyaccess"
+          file "start"
+        )
+      )
+      
+      change_x 45
+      square 0 20 2 : c#global_accent
+      icon "down" 0.5 : chx#15 c#txtc
+      square 20 30 0 0 1
+      if onclick (
+        say "Not implemented rn"
+      )
+      
+      change -45 -35
+      centext formatFileSize(cur.script.scriptSize) 10
+      
+      set_y frame.top - 70 + scroll_y
+      
+      if cur.screenshots.len > 0 (
+        cur.screenshot ??= 1
+        cur.screenshot_x ??= 0
+        cur.smooth_dt ??= delta_time
+        cur.smooth_dt += delta_time - cur.smooth_dt * .05
+        cur.screenshot_x += cur.screenshot - 1 - cur.screenshot_x * cur.smooth_dt * 30
+        set_x 0
+        change_y -200
+        page_len += 200
+        square window.width 330 10 : c#prim
+        set_x cur.screenshot_x * frame.width / -1
+        for i cur.screenshots.len (
+          image "https://raw.githubusercontent.com/RoturTW/apps/refs/heads/main/all/" ++ page_data ++ "/screenshots/" ++ encodeURIComponent(cur.screenshots[i]) null 300
+          change_x frame.width
+        )
+        set_x cur.screenshots.len - 1 * -10
+        change_y -160
+        page_len += 160
+        for i cur.screenshots.len (
+          if i == cur.screenshot (
+            c global_accent
+          ) else (
+            c seco
+          )
+          icon "w 15 dot 0 0" 0.5
+          if onclick (
+            cur.screenshot = i
+          )
+          change_x 20
+        )
+      )
+      descr = cur.description.wrapText(frame.width / 10 - 3)
+      lines = descr.split("\n").len
+      set_x 0
+      change_y lines * -11.5 - 30
+      square frame.width lines * 23 10 : c#prim
+      change frame.left + 10 lines * 11.5 - 15
+      text descr 10 : c#txtc
+      page_len += lines * 23 + 30
+      
+      set_x 0
+      change_y -80
+      square frame.width 90 10 : c#prim
+      
+      set_x frame.left + 10 : chy#35
+      text "Views:" + (stats.views[page_data] ?? 0) ++ ", Downloads:" + (stats.downloads[page_data] ?? 0) 10 : c#txtc
+      
+      set_x frame.left + 10 : chy#-23
+      if cur.permissions.len == 0 (
+        text "No permissions are required for this app" 10
+      ) else (
+        text "Requires Permissions: " ++ cur.permissions.join(",") 10
+      )
+      
+      set_x frame.left + 10 : chy#-23
+      text "Version: " ++ cur.version 10
+      
+      set_x frame.left + 10 : chy#-23
+      text "Last Edited: " ++ cur.script.lastModified.timestamp("to-relative") 10
+      page_len += 120
+      break
+  )
+)
+
+import "win-buttons"

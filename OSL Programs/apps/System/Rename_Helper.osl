@@ -1,0 +1,50 @@
+import "window_tools"
+
+window "dimensions" 270 140
+window "resizable" False
+window "show"
+file "open" passed_data "onlyaccess"
+// handle big files
+
+input_main = fileGet(2) ++ fileGet(1)
+input_main.destr
+
+folder = fileGet(1) === ".folder"
+if folder (
+  input_main = fileGet(2).destr
+)
+
+mainloop:
+load_theme
+
+loc 999 2 0 -63
+square 250 30 10 : c#prim
+input 250 23 "main" "Rename file" txtc
+
+loc 999 2 0 -113
+square 250 30 10 : c#prim
+if clicked or "enter".onpress (
+  dta = input_main.split(".")
+  if dta.len == 1 and folder (
+    file "set" 2 dta[1].destr
+    window "stop"
+  )
+  file "set" 2 dta[1].destr
+  file "set" 1 "." ++ dta[2].destr
+  window "stop"
+)
+change_x -30
+text "Rename" 8 : c#txtc
+
+loc 999 2 0 -15
+square 270 20 15 : c#prim
+
+loc -2 2 -15 -15
+icon "close" 0.6 : c#txtc
+if clicked (
+  window "stop"
+)
+
+loc 2 2 15 -15
+file "render" 1
+text "Rename File" 9 : chx#20 c#txtc

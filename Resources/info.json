@@ -1,0 +1,21 @@
+{
+  "server": "https://rotur.mistium.com/",
+  "rooms": [
+    "roturTW"
+  ],
+  "installer":"https://raw.githubusercontent.com/Mistium/Origin-OS/main/OSL%20Programs/apps/System/.Install_system.json",
+  "name":"sys-rotur",
+  "binary_file_types": [
+    "PDF",
+    "JPEG",
+    "PNG",
+    "GIF",
+    "MP3",
+    "MP4",
+    "DOCX",
+    "XLSX",
+    "PPTX",
+    "RAR",
+    "MPG"
+  ]
+}

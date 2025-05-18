@@ -1,0 +1,228 @@
+import as "glass" from "packages"
+import "window_tools"
+
+file "use_type" "ots"
+
+def "print" "data" (
+  terminal ++= data.destr
+  loops += data.destr.len
+)
+
+def "clearall" (
+  terminal = []
+  loops = 0
+)
+
+ansi = {
+  "\\e[30m": "#000",
+  "\\e[31m": "#f00",
+  "\\e[32m": "#0f0",
+  "\\e[33m": "#ff0",
+  "\\e[34m": "#00f",
+  "\\e[35m": "#f0f",
+  "\\e[36m": "#0ff",
+  "\\e[37m": "#fff",
+  "\\e[90m": "#555",
+  "\\e[91m": "#f55",
+  "\\e[92m": "#5f5",
+  "\\e[93m": "#ff5",
+  "\\e[94m": "#55f",
+  "\\e[95m": "#f5f",
+  "\\e[96m": "#5ff",
+  "\\e[97m": "#fff"
+}
+
+ansi_re = "/\\e\[[0-9;]+m/g"
+
+save "system@terminal" "set_directory"
+
+mode = "norm"
+
+if passed_data != "" (
+  file "open" passed_data "onlyaccess"
+  file "get" 4
+  data.replace("/^[ \\n\\t]*/gm","")
+  ots_script = data.split("\n")
+  each i line ots_script (
+    if line.startsWith("if ") or line.startsWith("jump ") (
+      line.split(" ")
+      if line.last()[1] == ":" (
+        idx = ots_script.index(line.last())
+        line[line.len] = idx
+        ots_script[i] = line.join(" ").destr
+      )
+    )
+  )
+  mode = "ots"
+) else (
+  ots_script = ""
+)
+network "set_app_id" "terminal@system"
+window "set_dragbox" [[2,2,0,0],[-2,2,-100,-30]]
+
+user_start = username ++ "@originos ~ % "
+terminal = []
+canenter = True
+input_1 = null
+last = []
+last_index = 0
+
+permission "request" "terminal"
+
+loops = 0
+taking_input = false
+ots_i = 1
+
+mainloop:
+load_theme
+
+if new_network_data (
+  if packet.data.istype("array") (
+    msg = packet.username + "> " + packet.data[0]
+    each line packet.data.delete(1) (
+      terminal.append(line)
+      loops += 1
+    )
+  ) else (
+    terminal.append(packet.username + "> " + packet.data)
+    loops += 1
+  )
+  new_network_data = false
+)
+
+loc 999 2 0 -20
+square window.width 30 10 : c#prim
+
+glass:frame window.left window.top window.right window.bottom
+c window_colour
+pen "opacity" 60
+icon "w 999 dot 0 0" 100
+frame "clear"
+
+if ots_script.isType("array") (
+  loop taking_input ? 1 100 (
+    cur = ots_script[ots_i]
+    cur_spl = cur.oslTokenise()
+    switch cur_spl[1] (
+      case "input"
+        if taking_input (
+          terminal.append(cur_spl[2])
+          loops ++
+          taking_var = cur_spl[cur_spl.len-1] == ">>"
+          taking_input = false
+        )
+        if "enter".onKeyDown() (
+          if taking_var (
+            cmd = cur_spl.last() ++ " = " ++ input_1.str
+            terminal cmd
+          )
+          terminal.append(username ++ "/: " ++ input_1.str)
+          loops ++
+          input_1 = ""
+          ots_i ++
+          taking_input = true
+        )
+        break
+      case "if"
+        if cur_spl.len == 5 (
+          terminal "calc" + cur_spl.trim(2,4).join(" ")
+        ) else (
+          terminal "echo" + cur_spl[2]
+        )
+        if terminal_output[1].bool == true (
+          ots_i = cur_spl.last() + 1
+        ) else (
+          ots_i ++
+        )
+        break
+      case "jump"
+        ots_i = cur_spl[2]
+        break
+      case ""
+      case "#"
+        ots_i ++
+        break
+      default
+        if cur[1] != ":" (
+          terminal cur
+          terminal = terminal ++ terminal_output
+          terminal_output = []
+          loops = terminal.len
+        )
+        ots_i ++
+        if ots_i > ots_script.len (
+          ots_script = ""
+          terminal.append("Program Finished...")
+          loops ++
+        )
+        break
+    )
+  )
+) else (
+  if mode == "SRE" (
+    if "enter".onpress (
+      network "SRE" input_1 sre_target
+      terminal = terminal.destr.append(username ++ "/:" ++ input_1)
+    )
+  )
+  if mode == "norm" (
+  if "enter".onpress (
+    last.append(input["main"])
+    last_index = last.len + 1
+    try (
+      if input_1.startsWith("SRE ") (
+        mode = "SRE"
+        sre_target = inputs.main.split(" ")[2]
+      ) else (
+        terminal inputs.main
+        log terminal_output[1].match(ansi_re)
+      )
+      terminal = terminal.destr.append(user_start ++ inputs.main)
+    
+      terminal ++= terminal_output
+    ) catch this.e (
+      terminal = terminal.destr.append(user_start ++ inputs.main)
+      terminal.append(this.e.error)
+    )
+    loops = terminal.len
+    terminal_output = []
+    inputs.main = null
+  )
+  )
+)
+
+if "up arrow".onpress (
+  last_index --
+  last_index.clamp(1,last.len)
+  input_1 = last[last_index]
+)
+if "down arrow".onpress (
+  last_index ++
+  last_index.clamp(1,last.len + 1)
+  input_1 = last[last_index]
+)
+
+loc 2 2 10 -20
+text "Terminal" 10 : c#txtc
+
+c prim
+frame window.left window.top - 40 window.right window.bottom loops + 1 * 20
+
+c txtc
+loc 2 2 10 0
+count = ((scroll_y / 20 - 1).round()).clamp(0,loops)
+loop (frame_height / 20 + 3).round().clamp(0,loops) (
+  count ++
+  y = count * -20 + 10 + scroll_y
+  loc 2 2 10 y
+  text terminal[count] 10
+)
+
+loc 2 2 10 -10 - (loops * 20) + scroll_y
+text user_start 10 : c#txtc
+set_x user_start.len * 5
+pen "opacity" 0
+input window_width - (user_start.len + 2 * 10) 30 "main" null null txtc
+frame "clear"
+
+import "win-buttons"
